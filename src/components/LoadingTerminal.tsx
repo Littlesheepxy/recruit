@@ -35,6 +35,7 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
   const [lines, setLines] = useState<{ text: string; color?: string }[]>([]);
   const [showPrompt, setShowPrompt] = useState(false);
   const [userInput, setUserInput] = useState('');
+  const [inputValue, setInputValue] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -51,7 +52,6 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
         currentIndex++;
         timeoutId = setTimeout(showNextLine, line.delay);
       } else {
-        // 所有初始行显示完毕，显示提示符
         setShowPrompt(true);
       }
     };
@@ -61,16 +61,6 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
     return () => clearTimeout(timeoutId);
   }, []);
 
-  // 当显示提示符时，聚焦输入框（移动端需要）
-  useEffect(() => {
-    if (showPrompt && inputRef.current) {
-      // 延迟聚焦，确保 DOM 已更新
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-    }
-  }, [showPrompt]);
-
   // 处理确认
   const handleConfirm = useCallback((isYes: boolean) => {
     if (confirmed) return;
@@ -79,7 +69,6 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
     setConfirmed(true);
     
     if (isYes) {
-      // 显示确认后的输出
       let currentIndex = 0;
       const showAfterLine = () => {
         if (currentIndex < AFTER_CONFIRM_LINES.length) {
@@ -88,7 +77,6 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
           currentIndex++;
           setTimeout(showAfterLine, line.delay);
         } else {
-          // 完成后退出
           setTimeout(() => {
             setIsExiting(true);
             setTimeout(onComplete, 600);
@@ -98,7 +86,6 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
       
       setTimeout(showAfterLine, 200);
     } else {
-      // 显示告别信息然后还是进入
       setLines(prev => [...prev, { text: '', color: undefined }]);
       setTimeout(() => {
         setLines(prev => [...prev, { text: 'See you next time. 👋', color: 'muted' }]);
@@ -125,20 +112,31 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
     }
   }, [showPrompt, confirmed, handleConfirm]);
 
-  // 处理输入框变化（移动端）
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.toLowerCase();
-    if (value.includes('y')) {
-      handleConfirm(true);
-    } else if (value.includes('n')) {
-      handleConfirm(false);
-    }
-  };
-
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
+
+  // 处理输入框变化（移动端）
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    
+    // 检测输入的最后一个字符
+    const lastChar = value.slice(-1).toLowerCase();
+    if (lastChar === 'y') {
+      handleConfirm(true);
+    } else if (lastChar === 'n') {
+      handleConfirm(false);
+    }
+  };
+
+  // 点击终端区域聚焦输入框
+  const handleTerminalClick = () => {
+    if (showPrompt && !confirmed && inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
 
   const getColorClass = (color?: string) => {
     switch (color) {
@@ -158,6 +156,7 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, y: -50 }}
           transition={{ duration: 0.5, ease: 'easeInOut' }}
+          onClick={handleTerminalClick}
         >
           <motion.div
             className="w-full max-w-2xl"
@@ -166,7 +165,7 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
             transition={{ duration: 0.4 }}
           >
             {/* 终端窗口 */}
-            <div className="code-window">
+            <div className="code-window cursor-text">
               <div className="code-window-header">
                 <div className="window-controls">
                   <span className="window-dot close" />
@@ -190,18 +189,8 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
                 {showPrompt && !confirmed && (
                   <div className="flex items-center">
                     <span className="text-[var(--text-primary)]">Continue? [y/n] </span>
+                    <span className="text-[var(--accent-green)]">{inputValue}</span>
                     <span className="cursor-blink text-[var(--accent-green)]">█</span>
-                    {/* 隐藏的输入框，用于移动端唤起键盘 */}
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      className="absolute opacity-0 w-0 h-0"
-                      autoFocus
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      onChange={handleInputChange}
-                    />
                   </div>
                 )}
                 
@@ -214,7 +203,22 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
               </div>
             </div>
 
-            {/* 提示文字和按钮 */}
+            {/* 隐藏的输入框 */}
+            {showPrompt && !confirmed && (
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputValue}
+                onChange={handleInputChange}
+                className="absolute -top-[9999px] left-0 opacity-0"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+              />
+            )}
+
+            {/* 提示文字 */}
             {showPrompt && !confirmed && (
               <motion.div
                 className="mt-6 text-center"
@@ -223,29 +227,13 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
                 transition={{ delay: 0.3 }}
               >
                 {/* 桌面端提示 */}
-                <p className="text-[var(--text-muted)] text-sm font-mono mb-4 hidden sm:block">
+                <p className="text-[var(--text-muted)] text-sm font-mono hidden sm:block">
                   Press <span className="text-[var(--accent-green)]">y</span> or <span className="text-[var(--accent-green)]">Enter</span> to continue
                 </p>
-                
-                {/* 移动端按钮 */}
-                <div className="flex gap-4 justify-center">
-                  <motion.button
-                    onClick={() => handleConfirm(true)}
-                    className="px-8 py-3 bg-[var(--accent-green)] text-[var(--bg-primary)] font-mono font-semibold rounded-lg"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    Yes, continue →
-                  </motion.button>
-                  <motion.button
-                    onClick={() => handleConfirm(false)}
-                    className="px-6 py-3 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] font-mono rounded-lg border border-[var(--border-color)]"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    No
-                  </motion.button>
-                </div>
+                {/* 移动端提示 */}
+                <p className="text-[var(--text-muted)] text-sm font-mono sm:hidden">
+                  Tap here, then type <span className="text-[var(--accent-green)]">y</span> to continue
+                </p>
               </motion.div>
             )}
           </motion.div>
