@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, Check, Copy } from 'lucide-react';
+import { Heart, Check, Copy, Search } from 'lucide-react';
 import CodeWindow from '../CodeWindow';
 import CodeLine, { Comment, Keyword, String, Variable, Func, Property } from '../CodeLine';
 import WechatIcon from '../icons/WechatIcon';
@@ -11,18 +11,32 @@ import ViewCounter from '../ViewCounter';
 // 配置微信号
 const WECHAT_ID = 'xiaoyyes';
 
+// 检测是否在微信浏览器内
+function isWechatBrowser(): boolean {
+  if (typeof window === 'undefined') return false;
+  const ua = navigator.userAgent.toLowerCase();
+  return ua.includes('micromessenger');
+}
+
 export default function CTASection() {
   const [copied, setCopied] = useState(false);
+  const [isInWechat, setIsInWechat] = useState(false);
+
+  useEffect(() => {
+    setIsInWechat(isWechatBrowser());
+  }, []);
 
   const handleWechatClick = async () => {
     try {
       await navigator.clipboard.writeText(WECHAT_ID);
       setCopied(true);
       
-      // 尝试打开微信（移动端有效）
-      setTimeout(() => {
-        window.location.href = 'weixin://';
-      }, 500);
+      // 如果不在微信浏览器内，尝试打开微信
+      if (!isInWechat) {
+        setTimeout(() => {
+          window.location.href = 'weixin://';
+        }, 500);
+      }
       
       // 3秒后重置复制状态
       setTimeout(() => setCopied(false), 3000);
@@ -88,7 +102,7 @@ export default function CTASection() {
             {copied ? (
               <>
                 <Check size={24} />
-                <span>已复制，正在跳转微信...</span>
+                <span>{isInWechat ? '已复制，请在通讯录搜索添加' : '已复制，正在跳转微信...'}</span>
               </>
             ) : (
               <>
@@ -98,6 +112,18 @@ export default function CTASection() {
               </>
             )}
           </motion.button>
+          
+          {/* 微信内浏览器提示 */}
+          {isInWechat && (
+            <motion.div
+              className="mt-4 flex items-center gap-2 text-[var(--text-secondary)] text-sm font-mono"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <Search size={14} />
+              <span>点击复制后，在微信通讯录搜索添加</span>
+            </motion.div>
+          )}
         </motion.div>
 
         {/* 备注提示 */}
@@ -138,7 +164,7 @@ export default function CTASection() {
           <Heart size={14} className="text-red-500 fill-red-500" />
           <span>by 锦秋基金 AI产品团队</span>
           <span className="hidden sm:inline">·</span>
-          <span>设计及开发用时 10 分钟</span>
+          <span>设计及开发用时 20 分钟</span>
         </motion.div>
       </div>
     </section>
