@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, Check, Copy, Search } from 'lucide-react';
+import { Heart, Check, Copy } from 'lucide-react';
 import CodeWindow from '../CodeWindow';
 import CodeLine, { Comment, Keyword, String, Variable, Func, Property } from '../CodeLine';
 import WechatIcon from '../icons/WechatIcon';
@@ -95,14 +95,19 @@ export default function CTASection() {
         >
           <motion.button
             onClick={handleWechatClick}
-            className="group flex items-center gap-3 px-10 py-5 bg-[#07C160] text-white font-mono font-semibold rounded-xl text-lg relative overflow-hidden"
+            className="group flex items-center gap-3 px-8 py-4 sm:px-10 sm:py-5 bg-[#07C160] text-white font-mono font-semibold rounded-xl text-base sm:text-lg relative overflow-hidden"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
             {copied ? (
               <>
                 <Check size={24} />
-                <span>{isInWechat ? '已复制，请在通讯录搜索添加' : '已复制，正在跳转微信...'}</span>
+                <span>{isInWechat ? '已复制，去通讯录搜索添加' : '已复制，正在跳转微信...'}</span>
+              </>
+            ) : isInWechat ? (
+              <>
+                <Copy size={20} />
+                <span>点击复制：{WECHAT_ID}</span>
               </>
             ) : (
               <>
@@ -112,18 +117,6 @@ export default function CTASection() {
               </>
             )}
           </motion.button>
-          
-          {/* 微信内浏览器提示 */}
-          {isInWechat && (
-            <motion.div
-              className="mt-4 flex items-center gap-2 text-[var(--text-secondary)] text-sm font-mono"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              <Search size={14} />
-              <span>点击复制后，在微信通讯录搜索添加</span>
-            </motion.div>
-          )}
         </motion.div>
 
         {/* 备注提示 */}
