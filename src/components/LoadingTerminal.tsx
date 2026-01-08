@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface LoadingTerminalProps {
@@ -37,6 +37,7 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
   const [userInput, setUserInput] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // 逐行显示初始内容
   useEffect(() => {
@@ -60,14 +61,24 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
     return () => clearTimeout(timeoutId);
   }, []);
 
-  // 处理键盘输入
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (!showPrompt || confirmed) return;
+  // 当显示提示符时，聚焦输入框（移动端需要）
+  useEffect(() => {
+    if (showPrompt && inputRef.current) {
+      // 延迟聚焦，确保 DOM 已更新
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [showPrompt]);
 
-    if (e.key === 'y' || e.key === 'Y' || e.key === 'Enter') {
-      setUserInput('y');
-      setConfirmed(true);
-      
+  // 处理确认
+  const handleConfirm = useCallback((isYes: boolean) => {
+    if (confirmed) return;
+    
+    setUserInput(isYes ? 'y' : 'n');
+    setConfirmed(true);
+    
+    if (isYes) {
       // 显示确认后的输出
       let currentIndex = 0;
       const showAfterLine = () => {
@@ -86,10 +97,7 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
       };
       
       setTimeout(showAfterLine, 200);
-    } else if (e.key === 'n' || e.key === 'N') {
-      setUserInput('n');
-      setConfirmed(true);
-      
+    } else {
       // 显示告别信息然后还是进入
       setLines(prev => [...prev, { text: '', color: undefined }]);
       setTimeout(() => {
@@ -104,7 +112,28 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
         }, 800);
       }, 200);
     }
-  }, [showPrompt, confirmed, onComplete]);
+  }, [confirmed, onComplete]);
+
+  // 处理键盘输入（桌面端）
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!showPrompt || confirmed) return;
+
+    if (e.key === 'y' || e.key === 'Y' || e.key === 'Enter') {
+      handleConfirm(true);
+    } else if (e.key === 'n' || e.key === 'N') {
+      handleConfirm(false);
+    }
+  }, [showPrompt, confirmed, handleConfirm]);
+
+  // 处理输入框变化（移动端）
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toLowerCase();
+    if (value.includes('y')) {
+      handleConfirm(true);
+    } else if (value.includes('n')) {
+      handleConfirm(false);
+    }
+  };
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -162,6 +191,17 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
                   <div className="flex items-center">
                     <span className="text-[var(--text-primary)]">Continue? [y/n] </span>
                     <span className="cursor-blink text-[var(--accent-green)]">█</span>
+                    {/* 隐藏的输入框，用于移动端唤起键盘 */}
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      className="absolute opacity-0 w-0 h-0"
+                      autoFocus
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      onChange={handleInputChange}
+                    />
                   </div>
                 )}
                 
@@ -174,16 +214,39 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
               </div>
             </div>
 
-            {/* 提示文字 */}
+            {/* 提示文字和按钮 */}
             {showPrompt && !confirmed && (
-              <motion.p
-                className="text-center text-[var(--text-muted)] text-sm mt-6 font-mono"
+              <motion.div
+                className="mt-6 text-center"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                Press <span className="text-[var(--accent-green)]">y</span> or <span className="text-[var(--accent-green)]">Enter</span> to continue
-              </motion.p>
+                {/* 桌面端提示 */}
+                <p className="text-[var(--text-muted)] text-sm font-mono mb-4 hidden sm:block">
+                  Press <span className="text-[var(--accent-green)]">y</span> or <span className="text-[var(--accent-green)]">Enter</span> to continue
+                </p>
+                
+                {/* 移动端按钮 */}
+                <div className="flex gap-4 justify-center">
+                  <motion.button
+                    onClick={() => handleConfirm(true)}
+                    className="px-8 py-3 bg-[var(--accent-green)] text-[var(--bg-primary)] font-mono font-semibold rounded-lg"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Yes, continue →
+                  </motion.button>
+                  <motion.button
+                    onClick={() => handleConfirm(false)}
+                    className="px-6 py-3 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] font-mono rounded-lg border border-[var(--border-color)]"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    No
+                  </motion.button>
+                </div>
+              </motion.div>
             )}
           </motion.div>
         </motion.div>
@@ -191,4 +254,3 @@ export default function LoadingTerminal({ onComplete }: LoadingTerminalProps) {
     </AnimatePresence>
   );
 }
-
