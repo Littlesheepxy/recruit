@@ -1,26 +1,215 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* GitHub Dark 主题色 */
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #21262d;
+  --bg-card: #1c2128;
+  
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #484f58;
+  
+  /* 代码高亮色 */
+  --syntax-keyword: #ff7b72;
+  --syntax-string: #a5d6ff;
+  --syntax-function: #d2a8ff;
+  --syntax-variable: #ffa657;
+  --syntax-comment: #8b949e;
+  --syntax-number: #79c0ff;
+  --syntax-property: #7ee787;
+  
+  /* 强调色 */
+  --accent-cyan: #58a6ff;
+  --accent-green: #3fb950;
+  --accent-orange: #f0883e;
+  --accent-purple: #a371f7;
+  
+  /* 边框 */
+  --border-color: #30363d;
+  --border-highlight: #484f58;
+  
+  /* 窗口控制按钮 */
+  --window-close: #ff5f56;
+  --window-minimize: #ffbd2e;
+  --window-maximize: #27c93f;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  overflow-x: hidden;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-highlight);
+}
+
+/* 选中文字样式 */
+::selection {
+  background: rgba(88, 166, 255, 0.3);
+  color: var(--text-primary);
+}
+
+/* 光标闪烁动画 */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* 渐显动画 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 代码块容器 */
+.code-window {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 
+    0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.code-window-header {
+  background: var(--bg-tertiary);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.window-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.window-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.window-dot.close { background: var(--window-close); }
+.window-dot.minimize { background: var(--window-minimize); }
+.window-dot.maximize { background: var(--window-maximize); }
+
+.code-content {
+  padding: 24px;
+  font-family: var(--font-geist-mono), 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-x: auto;
+}
+
+/* 行号样式 */
+.line-number {
+  color: var(--text-muted);
+  user-select: none;
+  width: 32px;
+  text-align: right;
+  margin-right: 24px;
+  display: inline-block;
+}
+
+/* 语法高亮 */
+.syntax-keyword { color: var(--syntax-keyword); }
+.syntax-string { color: var(--syntax-string); }
+.syntax-function { color: var(--syntax-function); }
+.syntax-variable { color: var(--syntax-variable); }
+.syntax-comment { color: var(--syntax-comment); font-style: italic; }
+.syntax-number { color: var(--syntax-number); }
+.syntax-property { color: var(--syntax-property); }
+.syntax-operator { color: var(--text-primary); }
+
+/* 响应式字体 */
+@media (max-width: 768px) {
+  .code-content {
+    font-size: 11px;
+    padding: 12px;
+    line-height: 1.6;
+  }
+  
+  .code-window {
+    border-radius: 8px;
+  }
+  
+  .code-window-header {
+    padding: 10px 12px;
+  }
+  
+  .window-dot {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .line-number {
+    width: 24px;
+    margin-right: 12px;
+  }
+}
+
+/* 超小屏幕 */
+@media (max-width: 480px) {
+  .code-content {
+    font-size: 10px;
+    padding: 10px;
+  }
+  
+  .line-number {
+    width: 20px;
+    margin-right: 8px;
+  }
+}
+
+/* 滚动时的平滑效果 */
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
 }
